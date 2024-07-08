@@ -23,7 +23,7 @@ Function Get-OUsWithUsers {
         [Parameter()]
         [string]$Domain
     )
-
+    $Global:OUHash = $null
     $Global:OUHash = @{}
     If($Domain){
         $Params = @{
@@ -46,6 +46,35 @@ Function Get-OUsWithUsers {
     }
     return $Global:OUHash
 }
+Function Get-OUsWithGroups {
+    Param (
+        [Parameter()]
+        [string]$Domain
+    )
+    $Global:OUHash = $null
+    $Global:OUHash = @{}
+    If($Domain){
+        $Params = @{
+            'Filter' = '*'
+            'Server' = $Domain
+        }
+    }Else{
+        $Params = @{
+            'Filter' = '*'
+        }
+    }
+    Get-ADGroup @Params | Foreach-Object {
+        Write-Host $_.SamAccountName -ForegroundColor Yellow
+        $OUName = Translate-DNToOU $_.DistinguishedName
+        If($OUHash.ContainsKey($OUName)){
+            ($OUHash.$OUName)++
+        }ElseIf(!($OUHash.ContainsKey($OUName))){
+            $OUHash.Add($OUName,1)
+        }
+    }
+    return $Global:OUHash
+}
 
 Export-ModuleMember Translate-DNtoOU
 Export-ModuleMember Get-OUsWithUsers
+Export-ModuleMember Get-OUsWithGroups
