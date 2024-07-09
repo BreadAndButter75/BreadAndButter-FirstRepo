@@ -52,7 +52,6 @@ function Export-DefaultPasswordPolicy {
 }
 
 # Main script execution
-Write-Host "Starting AD Domain Audit..."
 
 # Audit OUs
 $ouAudit = Audit-OUs 
@@ -77,4 +76,3 @@ $privilegedGroupsAudit | ForEach-Object {
 $fineGrainedPolicies | Format-Table -AutoSize
 $defaultPasswordPolicy | Format-Table -AutoSize
 
-Write-Host "AD Domain Audit Completed."
