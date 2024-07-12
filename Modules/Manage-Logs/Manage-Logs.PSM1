@@ -90,12 +90,10 @@ function Clear-Log {
                             $NewTranscript += $Line   
                         }
                     }
-
-                    
                 }
-
+                # remove the old file, we've backed up the contents to our variable.
                 Remove-Item $TranscriptPath -Force
-                # Write the new transcript to the file
+                # Write the transcriptdata to the new File
                 $NewTranscript | Set-Content $TranscriptPath -Force
             }
         }
