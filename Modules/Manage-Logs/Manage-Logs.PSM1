@@ -2,29 +2,44 @@ function New-Log {
     param (
         [Parameter(Mandatory)]
         [String]
-        $LogName
+        $LogName,
+        [Parameter]
+        [string]
+        $LogPath = "C:\temp\Logs"
     )
     process {
-        $LogPath = "C:\temp\Logs"
         If(!(Test-Path $LogPath)){
-            mkdir $LogPath
+            New-Item -ItemType Directory -Path $LogPath -Force
         }
         If(!(Test-Path $LogPath\$LogName)){
-            New-Item -Path $LogPath -Name $LogName -ItemType File
+            New-Item -Path $LogPath -Name $LogName -ItemType File -Force
         }
     }
 }
 function Write-Log {
+    # Example
+    <#
+        This is to be used in a script that is calling the Write-Log Function.
+        The script needs to have already imported the module Manage-Logs
+
+        # Create $LogName and save files to location C:\temp\Logs\Script-Name.log
+        $LogName = Split-Path $PSScriptRoot -Leaf
+        $LogName = $LogName + .Log
+        Write-Log -Message "Executing Script" -LogName $LogName
+    #>
+
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$true, ValueFromPipeline=$true)]
         [string]$Message,
         [Parameter(Mandatory=$True)]
-        [string]$LogName
+        [string]$LogName,
+        [Parameter()]
+        [string]$LogPath = "C:\Temp\Logs"
     )
 
     Process {
-        $LogPath = "C:\temp\Logs"
+        # Checks whether or not $LogName exists and if it does not it calls New-Log to create it.
         If(!(Test-Path $LogPath\$LogName)){
             New-Log $LogName
         }
@@ -35,17 +50,19 @@ function Write-Log {
 }
 function Clear-Log {
     param (
-        # Parameter help description
         [Parameter(Mandatory)]
         [String]
-        $LogFile
+        $LogFile,
+        [Parameter()]
+        [string]
+        $LogPath = "C:\temp\Logs\"
     )
     Process {
         # Set the cutoff date
         $CutoffDate = (Get-Date).AddDays(-90)
 
         # Get The Full Path
-        $TranscriptPath = 'C:\temp\Logs\' + $LogFile
+        $TranscriptPath = $LogPath + $LogFile
         
 
         try {
