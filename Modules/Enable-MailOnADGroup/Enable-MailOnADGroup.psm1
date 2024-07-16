@@ -47,7 +47,6 @@
         }
     }
     End {
-        Write-Host "In End Block" -ForegroundColor Green
     }
 
 }
