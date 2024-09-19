@@ -1,3 +1,8 @@
+ # This is a bit of code I wrote up to address some domain hardening changes
+ # Set-ADComputerCreator does not work because mS-DS-CreatorSID is a system owned property.
+ # Get-ADComputerCreator can help you identify the Creator of one or many computer objects.
+ # If the same owner attempts to join the domain the domain join is successful. 
+ 
  function Get-ADComputerCreator {
     [CmdletBinding()]
     param (
