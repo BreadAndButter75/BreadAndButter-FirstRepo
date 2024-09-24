@@ -1,4 +1,4 @@
- Function Get-ADGuidMap {
+Function Get-ADGuidMap {
     # Search AD and gather the GUIDs associated with Permissions and Attributes. 
     # These GUIDs are defined the same across All AD Environments.
     $rootdse = Get-ADRootDSE
@@ -142,7 +142,7 @@ function Add-DelegatedPermissionsToOU {
                         $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "DeleteChild", "Allow", $Global:GUIDMap['Computer'], "Descendents", "00000000-0000-0000-0000-000000000000"
                         $ACL.AddAccessRule($ace)
                     }
-                    MoveComputerToOU
+                    MoveComputerToOU {
                         # Destination OU permissions
                         $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "CreateChild", "Allow", $Global:GUIDMap['Computer'], "Descendents", "00000000-0000-0000-0000-000000000000"
                         $ACL.AddAccessRule($ace)
@@ -152,7 +152,7 @@ function Add-DelegatedPermissionsToOU {
                         $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "DeleteChild", "Allow", $Global:GUIDMap['User'], "Descendents", "00000000-0000-0000-0000-000000000000"
                         $ACL.AddAccessRule($ace)
                     }
-                    MoveUserToOU
+                    MoveUserToOU {
                         # Destination OU permissions
                         $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "CreateChild", "Allow", $Global:GUIDMap['User'], "Descendents", "00000000-0000-0000-0000-000000000000"
                         $ACL.AddAccessRule($ace)
@@ -197,9 +197,4 @@ function Add-DelegatedPermissionsToOU {
         # After Adding the permissions to the ACL. 
         Set-Acl -Path "AD:\$DN" -AclObject $ACL 
     }
-} 
-
-
-
-
- 
+}  
