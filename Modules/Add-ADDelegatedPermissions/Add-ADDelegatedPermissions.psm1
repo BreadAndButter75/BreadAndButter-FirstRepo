@@ -49,7 +49,6 @@ function Add-DelegatedPermissionsToOU {
         [string[]]$Permission
     )
     begin {
-        try {
             If(!($GuidMap)){
                 $Global:GUIDMap = Get-ADGuidMap
             }
@@ -68,12 +67,14 @@ function Add-DelegatedPermissionsToOU {
             # Get the SID of the Identity we're operating on.
             $IdentityName = $Identity.Split('\')[1]
             $IdentityDomain = $Identity.Split('\')[0]
-            $SID = New-Object System.Security.Principal.SecurityIdentifier (Get-ADUser $IdentityName -server $IdentityDomain).SID 
-        }
-        catch {
-            Write-Host "An Error occured in defining stage of the script." -ForegroundColor Red
-            Write-Host $Error[0]
-        }
+            $SID = $null
+            $SID = New-Object System.Security.Principal.SecurityIdentifier (Get-ADUser $IdentityName -server $IdentityDomain -ErrorAction SilentlyContinue).SID | Out-Null
+            if($null -eq $SID){
+                $SID = New-Object System.Security.Principal.SecurityIdentifier (Get-ADGroup $IdentityName -server $IdentityDomain -ErrorAction SilentlyContinue).SID
+            }
+            If($null -eq $SID){
+                $SID = New-Object System.Security.Principal.SecurityIdentifier (Get-ADComputer $IdentityName -server $IdentityDomain -ErrorAction SilentlyContinue).SID
+            }
     }
     process {
         switch ($PSCmdlet.ParameterSetName) {
@@ -195,6 +196,7 @@ function Add-DelegatedPermissionsToOU {
     }    
     end {
         # After Adding the permissions to the ACL. 
+        Write-Host "Setting Permission to $Permission on $Identity via $SID on $OUDistinguishedName " -ForegroundColor Cyan
         Set-Acl -Path "AD:\$DN" -AclObject $ACL 
     }
 }  
