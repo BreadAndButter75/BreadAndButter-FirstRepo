@@ -45,10 +45,11 @@ function Add-DelegatedPermissionsToOU {
         [string]$Identity,
 
         [Parameter(Mandatory, ParameterSetName = 'Default')]
-        [ValidateSet("DisableUsers","ResetPasswords","JoinComputers")]
+        [ValidateSet("DisableUsers","ResetPasswords","JoinComputers","WritePOSIXAttributes")]
         [string[]]$Permission
     )
     begin {
+        try {
             If(!($GuidMap)){
                 $Global:GUIDMap = Get-ADGuidMap
             }
@@ -67,14 +68,12 @@ function Add-DelegatedPermissionsToOU {
             # Get the SID of the Identity we're operating on.
             $IdentityName = $Identity.Split('\')[1]
             $IdentityDomain = $Identity.Split('\')[0]
-            $SID = $null
-            $SID = New-Object System.Security.Principal.SecurityIdentifier (Get-ADUser $IdentityName -server $IdentityDomain -ErrorAction SilentlyContinue).SID | Out-Null
-            if($null -eq $SID){
-                $SID = New-Object System.Security.Principal.SecurityIdentifier (Get-ADGroup $IdentityName -server $IdentityDomain -ErrorAction SilentlyContinue).SID
-            }
-            If($null -eq $SID){
-                $SID = New-Object System.Security.Principal.SecurityIdentifier (Get-ADComputer $IdentityName -server $IdentityDomain -ErrorAction SilentlyContinue).SID
-            }
+            $SID = New-Object System.Security.Principal.SecurityIdentifier (Get-ADUser $IdentityName -server $IdentityDomain).SID 
+        }
+        catch {
+            Write-Host "An Error occured in defining stage of the script." -ForegroundColor Red
+            Write-Host $Error[0]
+        }
     }
     process {
         switch ($PSCmdlet.ParameterSetName) {
@@ -108,84 +107,17 @@ function Add-DelegatedPermissionsToOU {
                         $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "Self", "Allow", $Global:GUIDMap['servicePrincipalName'],"Descendents",$Global:GUIDMap['Computer']
                         $ACL.AddAccessRule($ace) 
                     }
-                    UnlockUserAccounts {
-                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ExtendedRight", "Allow", $Global:ERM['User-Force-Change-Password'], "Descendents", $Global:GUIDMap['User']
+                    WritePOSIXAttributes{
+                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty, WriteProperty", "Allow", $Global:GUIDMap['uidNumber'], "Descendents",$Global:GUIDMap['User']
                         $ACL.AddAccessRule($ace)
-                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ExtendedRight", "Allow", $Global:ERM['User-Account-Control-Change'], "Descendents", $Global:GUIDMap['User']
+                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty, WriteProperty", "Allow", $Global:GUIDMap['gidNumber'], "Descendents",$Global:GUIDMap['User']
                         $ACL.AddAccessRule($ace)
-                    }
-                    ManageOUs {
-                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "CreateChild, DeleteChild", "Allow", $Global:GUIDMap['OrganizationalUnit'], "Descendents", $Global:GUIDMap['OrganizationalUnit']
+                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty, WriteProperty", "Allow", $Global:GUIDMap['unixHomeDirectory'], "Descendents",$Global:GUIDMap['User']
                         $ACL.AddAccessRule($ace)
-                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "WriteProperty", "Allow", "00000000-0000-0000-0000-000000000000", "Descendents", $Global:GUIDMap['OrganizationalUnit']
+                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty, WriteProperty", "Allow", $Global:GUIDMap['loginShell'], "Descendents",$Global:GUIDMap['User']
                         $ACL.AddAccessRule($ace)
-                    }
-                    ManageGroupMembership {
-                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "WriteProperty", "Allow", $Global:GUIDMap['member'], "Descendents", $Global:GUIDMap['Group']
-                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty", "Allow", $Global:GUIDMap['member'], "Descendents", $Global:GUIDMap['Group']
+                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty, WriteProperty", "Allow", $Global:GUIDMap['gecos'], "Descendents",$Global:GUIDMap['User']
                         $ACL.AddAccessRule($ace)
-                        $ACL.AddAccessRule($ace)
-                    }
-                    ManageSPNs {
-                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "WriteProperty", "Allow", $Global:GUIDMap['servicePrincipalName'], "Descendents", $Global:GUIDMap['Computer']
-                        $ACL.AddAccessRule($ace)
-                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "WriteProperty", "Allow", $Global:GUIDMap['servicePrincipalName'], "Descendents", $Global:GUIDMap['User']
-                        $ACL.AddAccessRule($ace)
-                    }
-                    ManageHomeDirectories {
-                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty, WriteProperty", "Allow", $Global:GUIDMap['homeDirectory'], "Descendents", $Global:GUIDMap['User']
-                        $ACL.AddAccessRule($ace)
-                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty, WriteProperty", "Allow", $Global:GUIDMap['profilePath'], "Descendents", $Global:GUIDMap['User']
-                        $ACL.AddAccessRule($ace)
-                    }
-                    MoveComputerFromOU {
-                        # Source OU permissions
-                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "DeleteChild", "Allow", $Global:GUIDMap['Computer'], "Descendents", "00000000-0000-0000-0000-000000000000"
-                        $ACL.AddAccessRule($ace)
-                    }
-                    MoveComputerToOU {
-                        # Destination OU permissions
-                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "CreateChild", "Allow", $Global:GUIDMap['Computer'], "Descendents", "00000000-0000-0000-0000-000000000000"
-                        $ACL.AddAccessRule($ace)
-                    }
-                    MoveUserFromOU{
-                        # Source OU permissions
-                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "DeleteChild", "Allow", $Global:GUIDMap['User'], "Descendents", "00000000-0000-0000-0000-000000000000"
-                        $ACL.AddAccessRule($ace)
-                    }
-                    MoveUserToOU {
-                        # Destination OU permissions
-                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "CreateChild", "Allow", $Global:GUIDMap['User'], "Descendents", "00000000-0000-0000-0000-000000000000"
-                        $ACL.AddAccessRule($ace)
-                    }
-                    ManageDNSRecords {
-                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty, WriteProperty", "Allow", $Global:GUIDMap['dnsRecord'], "Descendents", $Global:GUIDMap['dnsNode']
-                        $ACL.AddAccessRule($ace)
-                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "DeleteChild", "Allow", $Global:GUIDMap['dnsRecord'], "Descendents", $Global:GUIDMap['dnsNode']
-                        $ACL.AddAccessRule($ace)
-                    }
-                    WriteMail {
-                        # Write the "mail" attribute
-                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty, WriteProperty", "Allow", $Global:GUIDMap['mail'], "Descendents", $Global:GUIDMap['User']
-                        $ACL.AddAccessRule($ace)
-
-                        # Write the "proxyAddresses" attribute
-                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty, WriteProperty", "Allow", $Global:GUIDMap['proxyAddresses'], "Descendents", $Global:GUIDMap['User']
-                        $ACL.AddAccessRule($ace)
-                    }
-                    WriteMSExchAttributes {
-                        # Write the "msExchHomeServerName" attribute
-                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "WriteProperty", "Allow", $Global:GUIDMap['msExchHomeServerName'], "Descendents", $Global:GUIDMap['User']
-                        $ACL.AddAccessRule($ace)
-
-                        # Write the "msExchUserAccountControl" attribute
-                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "WriteProperty", "Allow", $Global:GUIDMap['msExchUserAccountControl'], "Descendents", $Global:GUIDMap['User']
-                        $ACL.AddAccessRule($ace)
-                    }
-                    ManageMSExchMailboxSecurityDescriptor {
-                       # Write the "msExchMailboxSecurityDescriptor" attribute
-                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "WriteProperty", "Allow", $Global:GUIDMap['msExchMailboxSecurityDescriptor'], "Descendents", $Global:GUIDMap['User']
-                        $ACL.AddAccessRule($ace) 
                     }
                 }
             }
@@ -196,7 +128,7 @@ function Add-DelegatedPermissionsToOU {
     }    
     end {
         # After Adding the permissions to the ACL. 
-        Write-Host "Setting Permission to $Permission on $Identity via $SID on $OUDistinguishedName " -ForegroundColor Cyan
         Set-Acl -Path "AD:\$DN" -AclObject $ACL 
     }
-}  
+} 
+ 
