@@ -45,7 +45,7 @@ function Add-DelegatedPermissionsToOU {
         [string]$Identity,
 
         [Parameter(Mandatory, ParameterSetName = 'Default')]
-        [ValidateSet("DisableUsers","ResetPasswords","JoinComputers","WritePOSIXAttributes")]
+        [ValidateSet("DisableUsers","ResetPasswords","JoinComputers","WritePOSIXAttributes","ReadComputerAttributesForSecurityDashboard")]
         [string[]]$Permission
     )
     begin {
@@ -119,6 +119,40 @@ function Add-DelegatedPermissionsToOU {
                         $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty, WriteProperty", "Allow", $Global:GUIDMap['gecos'], "Descendents",$Global:GUIDMap['User']
                         $ACL.AddAccessRule($ace)
                     }
+                    ReadComputerAttributesForSecurityDashboard{
+                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty", "Allow", $Global:GUIDMap['cn'], "Descendents",$Global:GUIDMap['Computer']
+                        $ACL.AddAccessRule($ace)
+                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty", "Allow", $Global:GUIDMap['Description'], "Descendents",$Global:GUIDMap['Computer']
+                        $ACL.AddAccessRule($ace)
+                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty", "Allow", $Global:GUIDMap['DistinguishedName'], "Descendents",$Global:GUIDMap['Computer']
+                        $ACL.AddAccessRule($ace)
+                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty", "Allow", $Global:GUIDMap['DNSHostName'], "Descendents",$Global:GUIDMap['Computer']
+                        $ACL.AddAccessRule($ace)
+                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty", "Allow", $Global:GUIDMap['domain'], "Descendents",$Global:GUIDMap['Computer']
+                        $ACL.AddAccessRule($ace)
+                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty", "Allow", $Global:GUIDMap['extensionAttribute8'], "Descendents",$Global:GUIDMap['Computer']
+                        $ACL.AddAccessRule($ace)
+                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty", "Allow", $Global:GUIDMap['LastLogonTimestamp'], "Descendents",$Global:GUIDMap['Computer']
+                        $ACL.AddAccessRule($ace)
+                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty", "Allow", $Global:GUIDMap['memberOf'], "Descendents",$Global:GUIDMap['Computer']
+                        $ACL.AddAccessRule($ace)
+                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty", "Allow", $Global:GUIDMap['objectSid'], "Descendents",$Global:GUIDMap['Computer']
+                        $ACL.AddAccessRule($ace)
+                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty", "Allow", $Global:GUIDMap['OperatingSystem'], "Descendents",$Global:GUIDMap['Computer']
+                        $ACL.AddAccessRule($ace)
+                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty", "Allow", $Global:GUIDMap['OperatingSystemServicePack'], "Descendents",$Global:GUIDMap['Computer']
+                        $ACL.AddAccessRule($ace)
+                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty", "Allow", $Global:GUIDMap['OperatingSystemVersion'], "Descendents",$Global:GUIDMap['Computer']
+                        $ACL.AddAccessRule($ace)
+                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty", "Allow", $Global:GUIDMap['pwdLastSet'], "Descendents",$Global:GUIDMap['Computer']
+                        $ACL.AddAccessRule($ace)
+                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty", "Allow", $Global:GUIDMap['ServicePrincipalName'], "Descendents",$Global:GUIDMap['Computer']
+                        $ACL.AddAccessRule($ace)
+                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty", "Allow", $Global:GUIDMap['UserAccountControl'], "Descendents",$Global:GUIDMap['Computer']
+                        $ACL.AddAccessRule($ace)
+                        $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule $SID, "ReadProperty", "Allow", $Global:GUIDMap['whenCreated'], "Descendents",$Global:GUIDMap['Computer']
+                        $ACL.AddAccessRule($ace)
+                    }
                 }
             }
             'CustomPermissions' {
@@ -131,4 +165,5 @@ function Add-DelegatedPermissionsToOU {
         Set-Acl -Path "AD:\$DN" -AclObject $ACL 
     }
 } 
+ 
  
