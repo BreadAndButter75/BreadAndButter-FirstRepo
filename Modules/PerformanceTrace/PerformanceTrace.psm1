@@ -1,3 +1,43 @@
+Function Get-HardwareConfiguration {
+    [CmdletBinding()]
+    param ()
+
+    # CPU Information
+    $cpu = Get-WmiObject Win32_Processor | Select-Object Name, NumberOfCores, MaxClockSpeed
+
+    # Memory Information
+    $memory = Get-WmiObject Win32_PhysicalMemory | Measure-Object Capacity -Sum
+    $totalMemoryGB = [math]::Round($memory.Sum / 1GB, 2)
+
+    # GPU Information
+    $gpu = Get-WmiObject Win32_VideoController | Select-Object Name, DriverVersion, AdapterRAM
+    $totalGpuRAMGB = [math]::Round(($gpu | Measure-Object AdapterRAM -Sum).Sum / 1GB, 2)
+
+    # Disk Information
+    $disk = Get-WmiObject Win32_DiskDrive | Select-Object Model, Size, MediaType
+    $totalDiskSizeGB = [math]::Round(($disk | Measure-Object Size -Sum).Sum / 1GB, 2)
+
+    # Operating System Information
+    $os = Get-WmiObject Win32_OperatingSystem | Select-Object Caption, Version, OSArchitecture
+
+    # Output
+    [PSCustomObject]@{
+        CPU               = $cpu.Name
+        Cores             = $cpu.NumberOfCores
+        ClockSpeedMHz     = $cpu.MaxClockSpeed
+        TotalMemoryGB     = $totalMemoryGB
+        GPU               = $gpu.Name -join ', '
+        GPUDriverVersion  = $gpu.DriverVersion -join ', '
+        TotalGpuRAMGB     = $totalGpuRAMGB
+        DiskModel         = $disk.Model -join ', '
+        TotalDiskSizeGB   = $totalDiskSizeGB
+        DiskMediaType     = $disk.MediaType -join ', '
+        OS                = $os.Caption
+        OSVersion         = $os.Version
+        OSArchitecture    = $os.OSArchitecture
+    }
+}
+
 function Get-HardwareUsageStats {
     [CmdletBinding()]
     param (
