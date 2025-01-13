@@ -154,4 +154,4 @@ Function Start-PerformanceTrace {
     }
 }
 
-Export-ModuleMember Start-PerformanceTrace, Get-HardwareUsageStats
+Export-ModuleMember Start-PerformanceTrace, Get-HardwareUsageStats, Get-HardwareConfiguration
