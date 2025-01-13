@@ -30,7 +30,7 @@ function Get-HardwareUsageStats {
 
         # GPU Engine Load (% usage)
     $gpuLoadCounter = Get-Counter '\GPU Engine(*)\Utilization Percentage' | Select-Object -ExpandProperty CounterSamples | Where-Object { $_.InstanceName -match 'engtype_3D' } | Measure-Object -Property CookedValue -Average
-    $gpuLoad = [math]::Round($gpuLoadCounter.Average, 2)
+    $gpuLoad = [math]::Round($gpuLoadCounter.Average * 100, 2)
 
     # GPU Memory Usage (Dedicated and Shared) in Bytes
     $dedicatedMemoryCounter = Get-Counter '\GPU Adapter Memory(*)\Dedicated Usage' | Select-Object -ExpandProperty CounterSamples | Measure-Object -Property CookedValue -Sum
