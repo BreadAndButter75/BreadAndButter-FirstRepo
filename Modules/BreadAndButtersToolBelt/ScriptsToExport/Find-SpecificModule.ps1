@@ -1,42 +1,72 @@
-function Find-SpecificModule {
+function Find-ModuleInPath {
     param (
         [Parameter(Mandatory = $true)]
-        [string]$ModuleName,
-
+        [string[]]$ModuleNames,  # Accepts multiple module names with wildcards
+        
         [switch]$Remove
     )
 
     # Get all module paths from $env:PSModulePath
     $modulePaths = $env:PSModulePath -split [System.IO.Path]::PathSeparator
-
-    $foundModules = @()
+    $results = @()
 
     foreach ($path in $modulePaths) {
         if (Test-Path $path) {
+            # Get all directories in the module path
             $moduleDirs = Get-ChildItem -Path $path -Directory -ErrorAction SilentlyContinue |
-                Where-Object { $_.Name -eq $ModuleName }
+                Where-Object { $ModuleNames -contains $_.Name -or $ModuleNames | ForEach-Object { $_ -like $_.Name } }
 
             foreach ($moduleDir in $moduleDirs) {
-                $fullPath = $moduleDir.FullName
-                $foundModules += $fullPath
+                # Extract module version (if subfolders exist)
+                $subDirs = Get-ChildItem -Path $moduleDir.FullName -Directory -ErrorAction SilentlyContinue
+                if ($subDirs) {
+                    foreach ($subDir in $subDirs) {
+                        # Ensure version directory structure
+                        if ($subDir.Name -match '^\d+\.\d+(\.\d+)?$') {
+                            $results += [PSCustomObject]@{
+                                ModuleName   = $moduleDir.Name
+                                Path         = $subDir.FullName
+                                Version      = $subDir.Name
+                                LastModified = $subDir.LastWriteTime
+                            }
 
-                if ($Remove) {
-                    try {
-                        Remove-Item -Path $fullPath -Recurse -Force -ErrorAction Stop
-                        Write-Host "Removed: $fullPath" -ForegroundColor Green
-                    } catch {
-                        Write-Host "Failed to remove: $fullPath - $_" -ForegroundColor Red
+                            if ($Remove) {
+                                try {
+                                    Remove-Item -Path $subDir.FullName -Recurse -Force -ErrorAction Stop
+                                    Write-Host "Removed: $($subDir.FullName)" -ForegroundColor Green
+                                } catch {
+                                    Write-Host "Failed to remove: $($subDir.FullName) - $_" -ForegroundColor Red
+                                }
+                            }
+                        }
+                    }
+                }
+                else {
+                    # Module without versioned subdirectories
+                    $results += [PSCustomObject]@{
+                        ModuleName   = $moduleDir.Name
+                        Path         = $moduleDir.FullName
+                        Version      = "Unknown"
+                        LastModified = $moduleDir.LastWriteTime
+                    }
+
+                    if ($Remove) {
+                        try {
+                            Remove-Item -Path $moduleDir.FullName -Recurse -Force -ErrorAction Stop
+                            Write-Host "Removed: $($moduleDir.FullName)" -ForegroundColor Green
+                        } catch {
+                            Write-Host "Failed to remove: $($moduleDir.FullName) - $_" -ForegroundColor Red
+                        }
                     }
                 }
             }
         }
     }
 
-    if ($foundModules) {
-        return $foundModules
+    if ($results) {
+        return $results
     } else {
-        Write-Host "Module '$ModuleName' not found in any paths." -ForegroundColor Yellow
+        Write-Host "No matching modules found." -ForegroundColor Yellow
         return $null
     }
 }
-
