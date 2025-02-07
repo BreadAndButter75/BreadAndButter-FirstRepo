@@ -1,4 +1,4 @@
-function Find-ModuleInPath {
+function Find-SpecificModule {
     param (
         [Parameter(Mandatory = $true)]
         [string[]]$ModuleNames,  # Accepts multiple module names with wildcards
