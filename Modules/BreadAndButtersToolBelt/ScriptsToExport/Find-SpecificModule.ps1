@@ -13,8 +13,8 @@ function Find-SpecificModule {
     foreach ($path in $modulePaths) {
         if (Test-Path $path) {
             # Get all directories in the module path
-            $moduleDirs = Get-ChildItem -Path $path -Directory -ErrorAction SilentlyContinue |
-                Where-Object { $ModuleNames -contains $_.Name -or $ModuleNames | ForEach-Object { $_ -like $_.Name } }
+            $moduleDirs = Get-ChildItem -Path $path -Directory -ErrorAction SilentlyContinue | 
+                Where-Object { $ModuleNames | ForEach-Object { $_ -like $_.Name } }
 
             foreach ($moduleDir in $moduleDirs) {
                 # Extract module version (if subfolders exist)
@@ -70,3 +70,8 @@ function Find-SpecificModule {
         return $null
     }
 }
+
+# Example Usage:
+# Find-ModuleInPath -ModuleNames "Az.*"
+# Find-ModuleInPath -ModuleNames "Az.*", "PSScriptAnalyzer"
+# Find-ModuleInPath -ModuleNames "Az.Accounts", "Az.Storage" -Remove
