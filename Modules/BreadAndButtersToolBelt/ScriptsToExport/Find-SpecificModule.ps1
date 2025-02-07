@@ -70,8 +70,3 @@ function Find-SpecificModule {
         return $null
     }
 }
-
-# Example Usage:
-# Find-ModuleInPath -ModuleNames "Az.*"
-# Find-ModuleInPath -ModuleNames "Az.*", "PSScriptAnalyzer"
-# Find-ModuleInPath -ModuleNames "Az.Accounts", "Az.Storage" -Remove
