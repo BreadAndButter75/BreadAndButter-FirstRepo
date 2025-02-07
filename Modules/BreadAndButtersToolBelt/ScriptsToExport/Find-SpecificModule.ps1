@@ -14,7 +14,7 @@ function Find-SpecificModule {
         if (Test-Path $path) {
             # Get all directories in the module path
             $moduleDirs = Get-ChildItem -Path $path -Directory -ErrorAction SilentlyContinue | 
-                Where-Object { $ModuleNames | ForEach-Object { $_ -like $_.Name } }
+                Where-Object { $ModuleNames -match $_.Name }
 
             foreach ($moduleDir in $moduleDirs) {
                 # Extract module version (if subfolders exist)
