@@ -33,7 +33,7 @@ Function Translate-DNtoDomainName {
     $Domain = (($DistinguishedName -split ",") -match "DC=") -replace "DC=" -join "."
     Return $Domain
 } 
-function Add-DelegatedPermissionsToOU {
+Function Add-DelegatedPermissionsToOU {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory, ParameterSetName = 'Default')]
@@ -60,7 +60,7 @@ function Add-DelegatedPermissionsToOU {
             # Define the Domain
             $OUDomain = Translate-DNtoDomainName $OUDistinguishedName
             # Define and Verify OUs for ACL Adjustment
-            $DN = Get-ADOrganizationalUnit -Identity $OUDistinguishedName -Server $OUDomain | Select-Object -ExpandProperty DistinguishedName 
+            $DN = Get-ADObject -Identity $OUDistinguishedName -Server $OUDomain | Select-Object -ExpandProperty DistinguishedName 
 
             # Get the ACL of the OU that we want to operate on.
             $ACL = Get-ACL "AD:\$DN" 
@@ -165,5 +165,108 @@ function Add-DelegatedPermissionsToOU {
         Set-Acl -Path "AD:\$DN" -AclObject $ACL 
     }
 } 
- 
+Function Get-DelegatedPermissionsInDomain {
+    [CmdletBinding()]
+    param (
+        [string]$Domain,
+        [hashtable]$GUIDMap = $Global:GUIDMap,
+        [hashtable]$ERMMap = $Global:ERMMap,
+        [string[]]$FilterIdentities,
+        [string[]]$FilterPermissions,
+        [switch]$IncludeSystemContainers
+    )
+
+    begin {
+        if (!($Domain)){
+            $Domain = Get-ADDomain -current LocalComputer | Select-object -ExpandProperty DNSRoot
+        }
+        if (!($GuidMap)) { $GUIDMap = Get-ADGuidMap }
+        if (!($ERMMap)) { $ERMMap = Get-ADExtendedRightsMap }
+
+        # Reverse lookup for GUID -> Attribute/Right name
+        $reverseGuidMap = @{}
+        foreach ($key in $GUIDMap.Keys) {
+            $reverseGuidMap[$GUIDMap[$key].Guid] = $key
+        }
+        foreach ($key in $ERMMap.Keys) {
+            $reverseGuidMap[$ERMMap[$key].Guid] = $key
+        }
+
+        $results = @()
+
+        # Get naming context to include root
+        $rootDSE = Get-ADRootDSE
+        $domainRootDN = $rootDSE.defaultNamingContext
+
+        # Target OUs, Containers, and domain root
+        $LDAPFilter = '(|(objectClass=organizationalUnit)(objectClass=container)(objectClass=domainDNS))'
+        $Targets = Get-ADObject -LDAPFilter $LDAPFilter -Properties DistinguishedName,ObjectClass -Server $Domain
+
+        # Filter out any system containers unless "-IncludeSystemContainers" is specified
+        If($IncludeSystemContainers){
+            $FilteredTargets = $Targets
+        }Else{
+            $FilteredTargets = $Targets | 
+            where-object -Properties DistinguishedName -NotLike "*CN=System,*" | 
+            Where-object -Properties DistinguishedName -NotLike "*CN=Program Data,*"
+        }
+    }
+
+    process {
+        foreach ($target in $FilteredTargets) {
+            try {
+                $acl = Get-Acl -Path "AD:\$($target.DistinguishedName)"
+                foreach ($ace in $acl.Access) {
+                    $resolvedObject = try {
+                        (New-Object System.Security.Principal.SecurityIdentifier($ace.IdentityReference.Value)).Translate([System.Security.Principal.NTAccount])
+                    } catch {
+                        $ace.IdentityReference
+                    }
+
+                    $objectType = if ($ace.ObjectType -ne [guid]::Empty) { 
+                        $reverseGuidMap[$ace.ObjectType] 
+                    } else { 
+                        "All" 
+                    }
+
+                    $inheritedObjectType = if ($ace.InheritedObjectType -ne [guid]::Empty) {
+                        $reverseGuidMap[$ace.InheritedObjectType]
+                    } else {
+                        "All"
+                    }
+
+                    $entry = [PSCustomObject]@{
+                        DistinguishedName       = $target.DistinguishedName
+                        ObjectClass             = $target.ObjectClass
+                        Identity                = $resolvedObject
+                        AccessControlType       = $ace.AccessControlType
+                        ActiveDirectoryRights   = $ace.ActiveDirectoryRights.ToString()
+                        ObjectType              = $objectType
+                        InheritedObjectType     = $inheritedObjectType
+                        InheritanceType         = $ace.InheritanceType
+                        IsInherited             = $ace.IsInherited
+                    }
+
+                    $include = $true
+                    if ($FilterIdentities) {
+                        $include = $FilterIdentities -contains $entry.Identity.Value
+                    }
+                    if ($FilterPermissions) {
+                        $include = $include -and ($FilterPermissions -contains $entry.ObjectType -or $FilterPermissions -contains $entry.ActiveDirectoryRights)
+                    }
+
+                    if ($include) {
+                        $results += $entry
+                    }
+                }
+            } catch {
+                Write-Warning "Failed to read ACL on $($target.DistinguishedName): $_"
+            }
+        }
+    }
+
+    end {
+        return $results
+    }
+}
  
