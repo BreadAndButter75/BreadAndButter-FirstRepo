@@ -10,17 +10,18 @@ Function New-StatusBoard {
         'Not Started' = 'Red'
         'In Progress' = 'Yellow'
         'Completed' = 'Green'
+        Default = 'Gray'
     }
     # Add colors if specified
     if($ColorMapValuesToAdd){
-        foreach($Key in $ColorMapValuesToAdd){
-            $StatusBoardColorMap[$key] = $ColorMapValuestoAdd[$Key]
+        foreach($Key in $ColorMapValuesToAdd.Keys){
+            $StatusBoardColorMap[$key] = $ColorMapValuesToAdd[$Key]
         }
     }
     foreach($SideAxisItem in $SideAxis){
         $StatusBoard[$SideAxisItem] = @{}
         Foreach($TopAxisItem in $TopAxis){
-            $StatusBoard[$SideAxisItem][$TopAxisItem] = '$DefaultValue'
+            $StatusBoard[$SideAxisItem][$TopAxisItem] = $DefaultValue
         }
     }
 }
@@ -65,9 +66,23 @@ Function Get-StatusBoard {
     foreach($sideAxisItem in $Global:StatusBoard.Keys){
         $row = [ordered]@{ Item = $SideAxisItem}
         foreach ($topAxisItem in $topAxis){
-            $row[$topAxisItem] = $Global:StatusBoard[$sideAxisItem][$topAxisItem].Value
+            $row[$topAxisItem] = $Global:StatusBoard[$sideAxisItem][$topAxisItem]
         }
         $results += [PSCustomObject]$Row
     }
     return $results
+}
+Set-StatusBoardCell {
+    param(
+        [Parameter(Mandatory, Position=0)][string]$SideAxisItem,
+        [Parameter(Mandatory, Position=1)][string]$TopAxisItem,
+        [Parameter(Mandatory,Position=2)][string]$Values
+    )
+    if(!($Global:StatusBoard.ContainsKey($SideAxisItem))){
+        throw "item '$SideAxisItem' not found in StatusBoard."
+    }
+    if(!($Global:StatusBoard[$sideAxisItem].ContainsKey[$TopAxisItem])){
+        throw "column '$topAxisItem' not found for '$sideAxisItem' in StatusBoard."
+    }
+    $Global:StatusBoard[$SideAxisItem][$topAxisItem] = $Value
 }
