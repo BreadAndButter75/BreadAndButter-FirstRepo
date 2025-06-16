@@ -6,6 +6,8 @@ Function New-StatusBoard {
         [Parameter()][hashtable]$ColorMapValuesToAdd
     )
     $Global:StatusBoard = @{}
+    $Global:StatusBoardSideAxis = $SideAxis
+    $Global:StatusBoardTopAxis = $TopAxis
     $Global:StatusBoardColorMap = @{
         'Not Started' = 'Red'
         'In Progress' = 'Yellow'
@@ -37,22 +39,21 @@ Function Show-StatusBoard {
         }
     }
 
-    $TopAxis = ($Global:StatusBoard.Values | Select-object -First 1).Keys
-    $columnWidth = ($TopAxis + $Global:StatusBoard.Keys | Measure-Object -Maximum Length).Maximum + 2
+    $columnWidth = ($Global:StatusBoardTopAxis + $Global:StatusBoardSideAxis | Measure-Object -Maximum Length).Maximum + 2
 
     clear-host
     
     # Write Header
     Write-Host ("".PadRight($ColumnWidth)) -nonewline
-    foreach ($TopAxisItem in $TopAxis){
+    foreach ($TopAxisItem in $Global:StatusBoardTopAxis){
         Write-Host ($topAxisItem.PadRight($ColumnWidth)) -NoNewLine -ForeGroundColor Magenta
     }
     Write-Host ""
 
     # Write each Row 
-    foreach($SideAxisItem in $Global:StatusBoard.Keys){
+    foreach($SideAxisItem in $Global:StatusBoardSideAxis){
         Write-Host $SideAxisItem.PadRight($ColumnWidth) -NoNewLine -ForeGroundColor Cyan
-        Foreach($TopAxisItem in $TopAxis){
+        Foreach($TopAxisItem in $Global:StatusBoardTopAxis){
             $Status = $Global:StatusBoard[$SideAxisItem][$TopAxisItem]
             $Color = If($StatusBoardColorMap.ContainsKey($Status)){$StatusBoardColorMap[$Status]}Else{$StatusBoardColorMap['Default']}
             Write-Host ($Status.PadRight($ColumnWidth)) -foregroundcolor $Color -NoNewLine
@@ -62,10 +63,9 @@ Function Show-StatusBoard {
 }
 Function Get-StatusBoard {
     $results = @()
-    $TopAxis = ($Global:StatusBoard.Values | Select-Object -First 1).Keys
-    foreach($sideAxisItem in $Global:StatusBoard.Keys){
+    foreach($sideAxisItem in $Global:StatusBoardSideAxis){
         $row = [ordered]@{ Item = $SideAxisItem}
-        foreach ($topAxisItem in $topAxis){
+        foreach ($topAxisItem in $Global:StatusBoardTopAxis){
             $row[$topAxisItem] = $Global:StatusBoard[$sideAxisItem][$topAxisItem]
         }
         $results += [PSCustomObject]$Row
@@ -76,7 +76,7 @@ Set-StatusBoardCell {
     param(
         [Parameter(Mandatory, Position=0)][string]$SideAxisItem,
         [Parameter(Mandatory, Position=1)][string]$TopAxisItem,
-        [Parameter(Mandatory,Position=2)][string]$Values
+        [Parameter(Mandatory,Position=2)][string]$Value
     )
     if(!($Global:StatusBoard.ContainsKey($SideAxisItem))){
         throw "item '$SideAxisItem' not found in StatusBoard."
