@@ -72,7 +72,7 @@ Function Get-StatusBoard {
     }
     return $results
 }
-Set-StatusBoardCell {
+Function Set-StatusBoardCell {
     param(
         [Parameter(Mandatory, Position=0)][string]$SideAxisItem,
         [Parameter(Mandatory, Position=1)][string]$TopAxisItem,
@@ -81,7 +81,7 @@ Set-StatusBoardCell {
     if(!($Global:StatusBoard.ContainsKey($SideAxisItem))){
         throw "item '$SideAxisItem' not found in StatusBoard."
     }
-    if(!($Global:StatusBoard[$sideAxisItem].ContainsKey[$TopAxisItem])){
+    if(!($Global:StatusBoard[$sideAxisItem].ContainsKey($TopAxisItem))){
         throw "column '$topAxisItem' not found for '$sideAxisItem' in StatusBoard."
     }
     $Global:StatusBoard[$SideAxisItem][$topAxisItem] = $Value
