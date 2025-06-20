@@ -31,7 +31,6 @@ Function New-StatusBoard {
         }
     }
 }
-
 Function Show-StatusBoard {
     param(
         [Parameter()][hashtable]$ColorMapValuesToAdd
