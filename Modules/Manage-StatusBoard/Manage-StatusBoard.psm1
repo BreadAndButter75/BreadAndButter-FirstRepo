@@ -13,6 +13,10 @@ Function New-StatusBoard {
         'In Progress' = 'Yellow'
         'Completed' = 'Green'
         Default = 'Gray'
+        'True' = 'Green'
+        'False' = 'Red'
+        'Success' = 'Green'
+        'Fail' = 'Red'
     }
     # Add colors if specified
     if($ColorMapValuesToAdd){
