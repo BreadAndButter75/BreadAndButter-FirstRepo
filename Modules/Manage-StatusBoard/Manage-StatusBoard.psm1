@@ -1,13 +1,13 @@
 Function New-StatusBoard {
     param(
-        [Parameter(Mandatory=$True)][string[]]$TopAxis, 
-        [Parameter(Mandatory=$True)][string[]]$SideAxis,
+        [Parameter(Mandatory=$True)][string[]]$XAxis, 
+        [Parameter(Mandatory=$True)][string[]]$YAxis,
         [Parameter()][string[]]$DefaultValue = 'Not Started',
         [Parameter()][hashtable]$ColorMapValuesToAdd
     )
     $Global:StatusBoard = @{}
-    $Global:StatusBoardSideAxis = $SideAxis
-    $Global:StatusBoardTopAxis = $TopAxis
+    $Global:StatusBoardYAxis = $YAxis
+    $Global:StatusBoardXAxis = $XAxis
     $Global:StatusBoardColorMap = @{
         'Not Started' = 'Red'
         'In Progress' = 'Yellow'
@@ -24,10 +24,10 @@ Function New-StatusBoard {
             $StatusBoardColorMap[$key] = $ColorMapValuesToAdd[$Key]
         }
     }
-    foreach($SideAxisItem in $SideAxis){
-        $StatusBoard[$SideAxisItem] = @{}
-        Foreach($TopAxisItem in $TopAxis){
-            $StatusBoard[$SideAxisItem][$TopAxisItem] = $DefaultValue
+    foreach($YAxisItem in $YAxis){
+        $StatusBoard[$YAxisItem] = @{}
+        Foreach($XAxisItem in $XAxis){
+            $StatusBoard[$YAxisItem][$XAxisItem] = $DefaultValue
         }
     }
 }
@@ -43,22 +43,22 @@ Function Show-StatusBoard {
         }
     }
 
-    $columnWidth = ($Global:StatusBoardTopAxis + $Global:StatusBoardSideAxis | Measure-Object -Maximum Length).Maximum + 2
+    $columnWidth = ($Global:StatusBoardXAxis + $Global:StatusBoardYAxis | Measure-Object -Maximum Length).Maximum + 2
 
     clear-host
     
     # Write Header
     Write-Host ("".PadRight($ColumnWidth)) -nonewline
-    foreach ($TopAxisItem in $Global:StatusBoardTopAxis){
-        Write-Host ($topAxisItem.PadRight($ColumnWidth)) -NoNewLine -ForeGroundColor Magenta
+    foreach ($XAxisItem in $Global:StatusBoardXAxis){
+        Write-Host ($XAxisItem.PadRight($ColumnWidth)) -NoNewLine -ForeGroundColor Magenta
     }
     Write-Host ""
 
     # Write each Row 
-    foreach($SideAxisItem in $Global:StatusBoardSideAxis){
-        Write-Host $SideAxisItem.PadRight($ColumnWidth) -NoNewLine -ForeGroundColor Cyan
-        Foreach($TopAxisItem in $Global:StatusBoardTopAxis){
-            $Status = $Global:StatusBoard[$SideAxisItem][$TopAxisItem]
+    foreach($YAxisItem in $Global:StatusBoardYAxis){
+        Write-Host $YAxisItem.PadRight($ColumnWidth) -NoNewLine -ForeGroundColor Cyan
+        Foreach($XAxisItem in $Global:StatusBoardXAxis){
+            $Status = $Global:StatusBoard[$YAxisItem][$XAxisItem]
             $Color = If($StatusBoardColorMap.ContainsKey($Status)){$StatusBoardColorMap[$Status]}Else{$StatusBoardColorMap['Default']}
             Write-Host ($Status.PadRight($ColumnWidth)) -foregroundcolor $Color -NoNewLine
         }
@@ -67,10 +67,10 @@ Function Show-StatusBoard {
 }
 Function Get-StatusBoard {
     $results = @()
-    foreach($sideAxisItem in $Global:StatusBoardSideAxis){
-        $row = [ordered]@{ Item = $SideAxisItem}
-        foreach ($topAxisItem in $Global:StatusBoardTopAxis){
-            $row[$topAxisItem] = $Global:StatusBoard[$sideAxisItem][$topAxisItem]
+    foreach($YAxisItem in $Global:StatusBoardYAxis){
+        $row = [ordered]@{ Item = $YAxisItem}
+        foreach ($XAxisItem in $Global:StatusBoardXAxis){
+            $row[$XAxisItem] = $Global:StatusBoard[$YAxisItem][$XAxisItem]
         }
         $results += [PSCustomObject]$Row
     }
@@ -78,15 +78,15 @@ Function Get-StatusBoard {
 }
 Function Set-StatusBoardCell {
     param(
-        [Parameter(Mandatory, Position=0)][string]$SideAxisItem,
-        [Parameter(Mandatory, Position=1)][string]$TopAxisItem,
+        [Parameter(Mandatory, Position=0)][string]$YAxisItem,
+        [Parameter(Mandatory, Position=1)][string]$XAxisItem,
         [Parameter(Mandatory,Position=2)][string]$Value
     )
-    if(!($Global:StatusBoard.ContainsKey($SideAxisItem))){
-        throw "item '$SideAxisItem' not found in StatusBoard."
+    if(!($Global:StatusBoard.ContainsKey($YAxisItem))){
+        throw "item '$YAxisItem' not found in StatusBoard."
     }
-    if(!($Global:StatusBoard[$sideAxisItem].ContainsKey($TopAxisItem))){
-        throw "column '$topAxisItem' not found for '$sideAxisItem' in StatusBoard."
+    if(!($Global:StatusBoard[$YAxisItem].ContainsKey($XAxisItem))){
+        throw "column '$XAxisItem' not found for '$YAxisItem' in StatusBoard."
     }
-    $Global:StatusBoard[$SideAxisItem][$topAxisItem] = $Value
+    $Global:StatusBoard[$YAxisItem][$XAxisItem] = $Value
 }
